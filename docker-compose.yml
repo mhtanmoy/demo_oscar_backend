@@ -1,0 +1,82 @@
+# docker-compose build
+version: "3"
+
+services:
+    web:
+        image: amarshohor_backend_web
+        build:
+            context: .
+            dockerfile: Dockerfile
+        command: >
+            bash -c "python3 manage.py migrate
+            && gunicorn amarshohor_backend.asgi:application -w 1 -k uvicorn.workers.UvicornWorker -b [::]:8000"
+        volumes:
+            - .:/app
+        ports:
+            - "8000:8000"
+        depends_on:
+            - redis
+        # deploy:
+        #   # replicas: 13
+        #   mode: global
+        #   update_config:
+        #     failure_action: rollback
+        #     order: start-first
+        #   restart_policy:
+        #     condition: on-failure
+
+    celery:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        command: celery --app=amarshohor_backend worker --loglevel=info
+        volumes:
+            - .:/app
+        environment:
+            - CELERY_BROKER=redis://redis:6379/0
+            - CELERY_BACKEND=redis://redis:6379/0
+        depends_on:
+            - web
+            - redis
+
+    flower:
+        image: mher/flower
+        container_name: flower
+        command: celery flower --persisten=True
+        environment:
+            - CELERY_BROKER_URL=redis://redis:6379/0
+            - FLOWER_PORT=5566
+        ports:
+            - 5566:5566
+        volumes:
+            - flower_data:/data
+        depends_on:
+            - celery
+
+    redis:
+        image: redis:6-alpine
+
+    # elasticsearch:
+    #     container_name: es-container
+    #     image: elasticsearch:7.17.7
+    #     volumes:
+    #         - elastic_data:/usr/share/elasticsearch/data
+    #     environment:
+    #         - xpack.security.enabled=false
+    #         - "discovery.type=single-node"
+    #     ports:
+    #         - 9200:9200
+    # kibana:
+    #     container_name: kb-container
+    #     image: kibana:7.17.7
+    #     environment:
+    #         - ELASTICSEARCH_HOSTS=http://es-container:9200
+    #     depends_on:
+    #         - elasticsearch
+    #     ports:
+    #         - 5601:5601
+
+volumes:
+    flower_data:
+    elastic_data:
+        driver: local

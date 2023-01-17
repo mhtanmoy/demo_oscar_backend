@@ -1,0 +1,41 @@
+asgiref==3.5.2
+Babel==2.11.0
+django-cors-headers==3.13.0
+channels==4.0.0
+Django==3.2.16
+django-allauth==0.51.0
+django-environ==0.9.0
+django-extensions==3.1.4
+django-extra-views==0.13.0
+django-filter==22.1
+django-oscar==3.1
+django-oscar-accounts==3.0.1
+django-oscar-api==3.1.2
+django-widget-tweaks==1.4.12
+# djangorestframework==3.13.1
+djangorestframework-simplejwt==5.2.2
+drf-yasg2==1.19.4
+
+graphviz==0.20.1
+# pygraphviz==1.10
+python-decouple==3.6
+requests==2.28.1
+shortuuid==1.0.9
+sorl-thumbnail==12.9.0
+urllib3==1.26.12
+django-oscar-invoices @ git+https://github.com/sakilanasrinsetu/django-oscar-invoices.git
+django-oscar-promotions @ git+https://github.com/sakilanasrinsetu/django-oscar-promotions.git@da7f820f94848e4daebc86b2e0fd1de52fd03d84
+validators==0.20.0
+# win32-setctime==1.1.0
+psycopg2-binary
+drf-haystack==1.8.11
+# django-haystack @ git+https://github.com/musleh0001/django-haystack.git
+elasticsearch>=7,<8
+# django-haystack[elasticsearch]
+# boto3
+# django-storage
+celery
+redis
+django-storages
+boto3==1.26.35
+drf_extra_fields==3.4.1

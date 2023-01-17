@@ -1,0 +1,116 @@
+name: CI (Build Docker Image and push into container registry)
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ ci_cd ]
+  pull_request:
+    branches: [ ci_cd ]
+
+  
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout from repository
+        uses: actions/checkout@v3
+      
+      - name: Create .env
+        uses: weyheyhey/create-dotenv-action@v1
+        with:
+          filename: ".env"
+          wildecard: "^"
+        env:
+          ^DEBUG: ${{ secrets.DEBUG }}
+          ^SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          ^FCM_SERVER_KEY: ${{ secrets.FCM_SERVER_KEY }}
+          ^EMAIL_BACKEND: ${{ secrets.EMAIL_BACKEND }}
+          ^EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+          ^EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+          ^EMAIL_USE_TLS: ${{ secrets.EMAIL_USE_TLS }}
+          ^EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+          ^EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+          ^DB_NAME: ${{ secrets.DB_NAME }}
+          ^DB_USER: ${{ secrets.DB_USER }}
+          ^DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          ^DB_HOST: ${{ secrets.DB_HOST }}
+          ^DB_PORT: ${{ secrets.DB_PORT }}
+          ^AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          ^AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          ^AWS_STORAGE_BUCKET_NAME_DEV: ${{ secrets.AWS_STORAGE_BUCKET_NAME_DEV }}
+          ^AWS_STORAGE_BUCKET_NAME: ${{ secrets.AWS_STORAGE_BUCKET_NAME }}
+          ^AWS_S3_CUSTOM_DOMAIN: ${{ secrets.AWS_S3_CUSTOM_DOMAIN }}
+          ^AWS_S3_ENDPOINT_URL: ${{ secrets.AWS_S3_ENDPOINT_URL }}
+          ^AWS_LOCATION: ${{ secrets.AWS_LOCATION }}
+          ^AWS_MEDIA_LOCATION: ${{ secrets.AWS_MEDIA_LOCATION }}
+          ^AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          ^CELERY_BROKER_URL: ${{ secrets.CELERY_BROKER_URL }}
+          ^CELERY_RESULT_BACKEND: ${{ secrets.CELERY_RESULT_BACKEND }}
+          ^EDESH_URL: ${{ secrets.EDESH_URL }}
+          ^EDESH_ACCESS_TOKEN: ${{ secrets.EDESH_ACCESS_TOKEN }}
+          ^EDESH_TEST_URL: ${{ secrets.EDESH_TEST_URL }}
+
+      # - uses: up9cloud/action-rsync@master
+      #   env:
+      #     HOST:  ${{ secrets.DEV_SERVER_HOST }}
+      #     KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     USER:  ${{ secrets.DEV_SERVER_USERNAME }}
+      #     TARGET: /home/ubuntu/AmarShohor/amarshohor_backend/
+
+      # - name: ssh scp ssh pipelines
+      #   uses: cross-the-world/ssh-scp-ssh-pipelines@latest
+      #   env:
+      #     WELCOME: "ssh scp ssh pipelines"
+      #     LASTSSH: "Doing something after copying"
+      #   with:
+      #     host: ${{ secrets.DEV_SERVER_HOST }}
+      #     user: ${{ secrets.DEV_SERVER_USERNAME }}
+      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     port: ${{ secrets.DEV_SERVER_PORT }}
+      #     connect_timeout: 100s
+      #     scp: |
+      #       './*' => /home/ubuntu/AmarShohor/amarshohor_backend
+      - name: executing remote ssh commands using password
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEV_SERVER_HOST }}
+          username: ${{ secrets.DEV_SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.DEV_SERVER_PORT }}
+          script: |
+            cd AmarShohor/amarshohor_backend
+            sudo find . -name '*.pyc' -delete
+            
+      - name: rsync deployments
+        uses: burnett01/rsync-deployments@5.2.1
+        with:
+          remote_host: ${{ secrets.DEV_SERVER_HOST }}
+          remote_user: ${{ secrets.DEV_SERVER_USERNAME }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          switches: -avzr --delete
+          path: ./*
+          remote_path: /home/ubuntu/AmarShohor/amarshohor_backend/
+  
+  deploy:
+    needs: [build]
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: executing remote ssh commands using password
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEV_SERVER_HOST }}
+          username: ${{ secrets.DEV_SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.DEV_SERVER_PORT }}
+          script: |
+            cd AmarShohor/amarshohor_backend
+            docker system prune
+            docker compose build web
+            docker-compose down
+            docker compose up --no-deps -d web celery redis flower
+            
+            
+          
